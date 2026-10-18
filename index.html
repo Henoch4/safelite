@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeLite — Minimal Multisig on BOT Chain</title>
+<style>
+:root{--bg:#0b0e11;--fg:#edf1f4;--mut:#97a3ad;--line:#20282f;--card:#12171c;--acc:#7dd3fc;--acc2:#d8efff;--onacc:#06202e;--danger:#ef4444}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;line-height:1.55;min-height:100vh}
+a{color:inherit;text-decoration:none}
+.mono{font-family:'Courier New',monospace}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+nav{border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;background:rgba(11,14,17,.92);backdrop-filter:blur(8px)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}
+.logo i{width:26px;height:26px;border-radius:6px;background:var(--acc);color:var(--onacc);display:inline-flex;align-items:center;justify-content:center;font-size:16px;font-style:normal}
+.nav-links{display:flex;align-items:center;gap:18px;font-size:13.5px;color:var(--mut)}
+.btn{font-weight:600;font-size:13.5px;padding:10px 18px;border-radius:8px;border:none;cursor:pointer;min-height:40px}
+.btn-a{background:var(--acc);color:var(--onacc)}
+.btn-a:hover{background:var(--acc2)}
+.btn-g{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn-g:hover{border-color:var(--acc)}
+.btn-sm{padding:7px 13px;font-size:12.5px;min-height:34px}
+select#netSel{background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:12px;padding:9px;color:var(--fg)}
+.hero{padding:56px 0 30px}
+.hero h1{font-size:clamp(30px,5vw,52px);font-weight:800;letter-spacing:-.02em}
+.hero h1 span{color:var(--acc)}
+.hero p{color:var(--mut);max-width:640px;margin-top:12px;font-size:16px}
+.ticker{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:8px 0 26px}
+.ticker .cell{padding:16px 24px;display:flex;justify-content:space-between;gap:12px}
+.ticker .cell + .cell{border-left:1px solid var(--line)}
+.ticker .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.ticker .v{font-size:15px;font-weight:700;color:var(--acc2)}
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start;padding-bottom:48px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.ticker{grid-template-columns:1fr}.ticker .cell + .cell{border-left:none;border-top:1px solid var(--line)}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:18px;overflow:hidden}
+.panel-head{padding:14px 18px;border-bottom:1px solid var(--line);font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mut)}
+.row{display:grid;grid-template-columns:130px 1fr auto;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row label{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.row input,.row textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--fg);font-size:14px;padding:10px 12px;min-height:42px;font-family:'Inter',sans-serif}
+.row input.mono,.row textarea.mono{font-family:'Courier New',monospace;font-size:12.5px}
+.row textarea{min-height:56px;resize:vertical}
+.kv{display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--mut);gap:10px}
+.kv:last-child{border-bottom:none}
+.kv b{color:var(--fg);font-weight:600;text-align:right}
+.hint{padding:10px 18px 16px;font-size:12.5px;color:var(--mut)}
+.msg{display:none;padding:8px 18px 14px;font-size:12.5px;color:var(--acc2)}
+.safe{padding:16px 18px;border-bottom:1px solid var(--line)}
+.safe:last-child{border-bottom:none}
+.safe.sel{box-shadow:inset 3px 0 0 var(--acc)}
+.safe-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;flex-wrap:wrap;cursor:pointer}
+.safe-top b{font-size:15px}
+.tag{font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:5px;border:1px solid var(--acc);color:var(--acc2);white-space:nowrap}
+.safe-meta{font-size:12.5px;color:var(--mut);display:flex;gap:14px;flex-wrap:wrap}
+.safe-meta .mono{color:var(--fg);font-size:12px}
+.sig{font-family:'Courier New',monospace;font-size:11px;color:var(--acc2);word-break:break-all;padding:4px 0}
+footer{padding:36px 0;border-top:1px solid var(--line);color:var(--mut);font-size:13px}
+footer a{color:var(--acc2)}
+.proof{max-width:440px;margin-top:18px;padding:16px 18px;background:var(--card);border:1px solid var(--line);border-radius:8px}
+.proof-title{font-family:ui-monospace,'Courier New',monospace;font-size:11px;font-weight:600;color:var(--acc);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+.proof-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-family:ui-monospace,'Courier New',monospace;font-size:12px;color:var(--mut)}
+.proof-grid .val{color:var(--acc);overflow-wrap:anywhere}
+.proof-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
+.proof-link{font-family:ui-monospace,'Courier New',monospace;font-size:11px;color:var(--acc);border-bottom:1px solid var(--acc);text-decoration:none}
+</style>
+</head>
+<body>
+<nav><div class="wrap nav-in">
+<div class="logo"><i>⛨</i>SafeLite</div>
+<div class="nav-links">
+<select id="netSel"><option value="968" selected>Testnet 968</option><option value="677">Mainnet 677</option></select>
+<button class="btn btn-a" id="connectBtn">Connect wallet</button>
+</div>
+</div></nav>
+
+<div class="wrap">
+<div class="hero">
+<h1>Shared money, <span>no trust needed.</span></h1>
+<p>Minimal multisigs on BOT Chain. Set owners + threshold once, then every spend needs enough owner signatures over a chain-bound, nonce-guarded digest. Replays impossible.</p>
+</div>
+
+<div class="ticker">
+<div class="cell"><span class="k">Safes</span><span class="v" id="tSafes">—</span></div>
+<div class="cell"><span class="k">Selected nonce</span><span class="v" id="tNonce">—</span></div>
+<div class="cell"><span class="k">Your BOT</span><span class="v" id="tBal">—</span></div>
+</div>
+
+<div class="grid">
+<div>
+<div class="panel">
+<div class="panel-head">Safes</div>
+<div id="safeList"><div class="hint">Loading…</div></div>
+</div>
+
+<div class="panel">
+<div class="panel-head">Execute from selected safe</div>
+<div class="row"><label>To</label><input id="xTo" class="mono" placeholder="0x…"></div>
+<div class="row"><label>Value (BOT)</label><input id="xVal" type="number" step="any" placeholder="0.1"></div>
+<div class="row"><label>Data</label><input id="xData" class="mono" placeholder="0x (empty = plain transfer)"></div>
+<div class="kv"><span>Digest to sign</span><b class="mono" id="xDigest" style="font-size:11px">—</b></div>
+<div class="kv"><span>Signatures (<span id="xCount">0</span>)</span><b>sorted by signer, ascending</b></div>
+<div id="sigList"><div class="hint">No signatures yet — owners sign below.</div></div>
+<div class="row" style="border-bottom:none;grid-template-columns:1fr auto;gap:8px"><span class="hint" style="padding:0">Sign with an owner wallet, then execute.</span><span><button class="btn btn-g btn-sm" id="signBtn">Sign ✓</button> <button class="btn btn-a btn-sm" id="execBtn">Execute →</button></span></div>
+<div class="msg" id="xMsg"></div>
+</div>
+</div>
+
+<div>
+<div class="panel">
+<div class="panel-head">New safe</div>
+<div class="row"><label>Owners</label><textarea id="nOwners" class="mono" placeholder="0xaaa…, 0xbbb…, 0xccc…"></textarea></div>
+<div class="row" style="border-bottom:none"><label>Threshold</label><input id="nThresh" type="number" placeholder="2"></div>
+<div class="row" style="border-bottom:none;grid-template-columns:1fr auto"><span class="hint" style="padding:0">Set once, forever.</span><button class="btn btn-a" id="createBtn">Deploy →</button></div>
+<div class="msg" id="cMsg"></div>
+</div>
+
+<div class="panel">
+<div class="panel-head">Fund selected safe</div>
+<div class="row" style="border-bottom:none;grid-template-columns:1fr auto"><input id="fAmt" type="number" step="any" placeholder="BOT amount"><button class="btn btn-g btn-sm" id="fundBtn">Fund →</button></div>
+<div class="msg" id="fMsg"></div>
+</div>
+
+<div class="panel">
+<div class="panel-head">How it works</div>
+<div class="kv"><span>Signatures</span><b>personal_sign, sorted</b></div>
+<div class="kv"><span>Digest binds</span><b>chain + safe + nonce</b></div>
+<div class="kv"><span>Replay</span><b>impossible (nonce bumps)</b></div>
+<div class="kv"><span>Setup</span><b>once, immutable</b></div>
+<div class="hint">Treasuries, team wallets, grant committees — shared custody in one page.</div>
+</div>
+</div>
+</div>
+
+<footer>
+<p>SafeLite — minimal multisig on BOT Chain. Enough keys, or nothing moves.</p>
+<div class="proof">
+<div class="proof-title">Proof on BOT Testnet</div>
+<div class="proof-grid">
+<span>Chain ID</span><span class="val">968</span>
+<span>Factory</span><span class="val">0x85A4216Bf47641118b549a4874b0833fe916c0B9</span>
+</div>
+<div class="proof-links">
+<a href="https://botchain.ai" target="_blank" rel="noopener" class="proof-link">BOT Chain Website &#8599;</a>
+<a href="https://scan.botchain.ai/" target="_blank" rel="noopener" class="proof-link">BOTScan Explorer &#8599;</a>
+</div>
+</div>
+</footer>
+</div>
+
+<script type="importmap">
+{"imports":{"ethers":"https://esm.sh/ethers@6.13.2","@reown/appkit":"https://esm.sh/@reown/appkit@1.8.21","@reown/appkit-adapter-ethers":"https://esm.sh/@reown/appkit-adapter-ethers@1.8.21"}}
+</script>
+<script type="module">
+import { ethers } from 'ethers';
+import { createAppKit } from '@reown/appkit';
+import { EthersAdapter } from '@reown/appkit-adapter-ethers';
+
+const PROJECT_ID = 'f018499b1e4a94d961ab67aeeeff3254';
+const CONTRACTS = { 968: { fac: '0x85A4216Bf47641118b549a4874b0833fe916c0B9' } };
+const FAC_ABI = ['function totalSafes() view returns (uint256)','function safeAt(uint256) view returns (address)','function create(address[],uint256) returns (address)'];
+const SAFE_ABI = ['function getOwners() view returns (address[])','function threshold() view returns (uint256)','function nonce() view returns (uint256)','function domainHash(address,uint256,bytes32,uint256) view returns (bytes32)','function exec(address,uint256,bytes,bytes[])'];
+const $ = (id) => document.getElementById(id);
+let currentChainId = 968, account = null, sel = 0, SAFES = [], sigs = [];
+
+const appkit = createAppKit({
+  adapters: [new EthersAdapter()],
+  networks: [{ id: 677, name: 'BOT Mainnet', nativeCurrency: { name: 'BOT', symbol: 'BOT', decimals: 18 }, rpcUrls: { default: { http: ['https://rpc.botchain.ai'] } } }, { id: 968, name: 'BOT Testnet', nativeCurrency: { name: 'BOT', symbol: 'BOT', decimals: 18 }, rpcUrls: { default: { http: ['https://rpc.bohr.life'] } } }],
+  projectId: PROJECT_ID,
+  features: { analytics: false },
+});
+async function getSigner() {
+  if (typeof appkit !== 'undefined' && appkit && typeof appkit.getWalletProvider === 'function') {
+    const wp = appkit.getWalletProvider('eip155') || appkit.getWalletProvider();
+    if (wp) return await new ethers.BrowserProvider(wp).getSigner();
+  }
+  throw new Error('Connect a wallet first');
+}
+function short(a) { return !a ? '—' : a.slice(0, 6) + '…' + a.slice(-4); }
+function msg(id, t, ok) {
+  const el = $(id); el.style.display = 'block';
+  el.style.color = ok === false ? 'var(--danger)' : 'var(--acc2)';
+  el.textContent = t;
+}
+async function provider() {
+  return new ethers.JsonRpcProvider(currentChainId === 968 ? 'https://rpc.bohr.life' : 'https://rpc.botchain.ai');
+}
+async function facRead() {
+  const c = CONTRACTS[currentChainId];
+  if (!c) return null;
+  return new ethers.Contract(c.fac, FAC_ABI, await provider());
+}
+function fmt(v) { try { return ethers.formatEther(v); } catch (e) { return String(v); } }
+async function refresh() {
+  const f = await facRead();
+  if (!f) { $('safeList').innerHTML = '<div class="hint">Mainnet not deployed yet — testnet for now.</div>'; return; }
+  const n = Number(await f.totalSafes());
+  $('tSafes').textContent = n;
+  if (account) {
+    try { $('tBal').textContent = Number(ethers.formatEther(await (await provider()).getBalance(account))).toFixed(4) + ' BOT'; } catch (e) {}
+  }
+  SAFES = [];
+  const p = await provider();
+  for (let i = 0; i < n; i++) {
+    const addr = await f.safeAt(i);
+    const s = new ethers.Contract(addr, SAFE_ABI, p);
+    SAFES.push({ id: i, addr, owners: await s.getOwners(), thresh: Number(await s.threshold()), nonce: await s.nonce(), bal: await p.getBalance(addr) });
+  }
+  if (sel >= SAFES.length) sel = Math.max(0, SAFES.length - 1);
+  $('safeList').innerHTML = SAFES.map((s, i) =>
+    '<div class="safe' + (i === sel ? ' sel' : '') + '" data-i="' + i + '"><div class="safe-top"><b>' + short(s.addr) + '</b><span class="tag">' + s.thresh + '-of-' + s.owners.length + '</span></div>'
+    + '<div class="safe-meta"><span>Bal <span class="mono">' + fmt(s.bal) + '</span></span><span>Nonce <span class="mono">' + s.nonce + '</span></span><span>Owners <span class="mono">' + s.owners.map(short).join(' ') + '</span></span></div></div>'
+  ).join('') || '<div class="hint">No safes yet — deploy the first one →</div>';
+  const s = SAFES[sel];
+  $('tNonce').textContent = s ? s.nonce.toString() : '—';
+  sigs = [];
+  renderSigs();
+  updateDigest();
+}
+function renderSigs() {
+  $('xCount').textContent = sigs.length;
+  $('sigList').innerHTML = sigs.length
+    ? sigs.map((g, i) => '<div class="sig">[' + i + '] ' + g.slice(0, 66) + '…</div>').join('')
+    : '<div class="hint">No signatures yet — owners sign below.</div>';
+}
+async function currentDigest() {
+  const s = SAFES[sel];
+  if (!s) return null;
+  const to = $('xTo').value.trim() || ethers.ZeroAddress;
+  const val = $('xVal').value.trim() || '0';
+  let data = ($('xData').value.trim() || '0x');
+  if (data === '0x') data = '0x';
+  const p = await provider();
+  const c = new ethers.Contract(s.addr, SAFE_ABI, p);
+  const nonce = await c.nonce();
+  return c.domainHash(to, ethers.parseEther(val), ethers.keccak256(data), nonce);
+}
+async function updateDigest() {
+  try {
+    const d = await currentDigest();
+    $('xDigest').textContent = d ? d.slice(0, 34) + '…' : '—';
+  } catch (e) { $('xDigest').textContent = '—'; }
+}
+['xTo', 'xVal', 'xData'].forEach((id) => $(id).addEventListener('input', updateDigest));
+async function write(fn, args, value, okMsg, msgId) {
+  try {
+    const s = await getSigner();
+    const c = CONTRACTS[currentChainId];
+    const t = fn === 'create'
+      ? new ethers.Contract(c.fac, FAC_ABI, s)
+      : new ethers.Contract(SAFES[sel].addr, SAFE_ABI, s);
+    const tx = value !== undefined ? await t[fn](...args, { value }) : await t[fn](...args);
+    msg(msgId || 'cMsg', 'Sent: ' + tx.hash.slice(0, 18) + '… waiting…');
+    await tx.wait();
+    msg(msgId || 'cMsg', okMsg || 'Confirmed ✓');
+    await refresh();
+  } catch (e) {
+    msg(msgId || 'cMsg', 'Failed: ' + (e.shortMessage || e.reason || e.message || e).toString().slice(0, 160), false);
+  }
+}
+$('safeList').addEventListener('click', (e) => {
+  const s = e.target.closest('.safe'); if (!s) return;
+  sel = Number(s.dataset.i);
+  refresh();
+});
+$('signBtn').addEventListener('click', async () => {
+  try {
+    const s = await getSigner();
+    const d = await currentDigest();
+    if (!d) { msg('xMsg', 'Select a safe first.', false); return; }
+    const sig = await s.signMessage(ethers.getBytes(d));
+    const me = (await s.getAddress()).toLowerCase();
+    // insert sorted by signer address (contract requires ascending, unique)
+    sigs.push({ me, sig });
+    sigs.sort((x, y) => (x.me < y.me ? -1 : 1));
+    renderSigs();
+    msg('xMsg', 'Signed ✓ (' + sigs.length + ' collected)');
+  } catch (e) { msg('xMsg', 'Failed: ' + (e.shortMessage || e.message || e).toString().slice(0, 140), false); }
+});
+$('execBtn').addEventListener('click', async () => {
+  const s = SAFES[sel]; if (!s) { msg('xMsg', 'Select a safe first.', false); return; }
+  const to = $('xTo').value.trim(), val = $('xVal').value.trim() || '0';
+  let data = $('xData').value.trim() || '0x';
+  if (!/^0x[0-9a-fA-F]{40}$/.test(to)) { msg('xMsg', 'Valid destination required.', false); return; }
+  if (!sigs.length) { msg('xMsg', 'Collect owner signatures first.', false); return; }
+  try {
+    const g = await getSigner();
+    const t = new ethers.Contract(s.addr, SAFE_ABI, g);
+    const tx = await t.exec(to, ethers.parseEther(val), data, sigs.map((x) => x.sig));
+    msg('xMsg', 'Sent: ' + tx.hash.slice(0, 18) + '… waiting…');
+    await tx.wait();
+    msg('xMsg', 'Executed ✓');
+    await refresh();
+  } catch (e) { msg('xMsg', 'Failed: ' + (e.shortMessage || e.reason || e.message || e).toString().slice(0, 160), false); }
+});
+$('createBtn').addEventListener('click', async () => {
+  const owners = $('nOwners').value.split(',').map((x) => x.trim()).filter(Boolean);
+  const th = Number($('nThresh').value.trim() || '0');
+  if (!owners.length || !owners.every((o) => /^0x[0-9a-fA-F]{40}$/.test(o)) || !(th > 0) || th > owners.length) {
+    msg('cMsg', 'Valid owners + threshold ≤ owners required.', false); return;
+  }
+  if (new Set(owners.map((o) => o.toLowerCase())).size !== owners.length) { msg('cMsg', 'Duplicate owner.', false); return; }
+  const f = await facRead();
+  try {
+    const s = await getSigner();
+    const t = new ethers.Contract(CONTRACTS[currentChainId].fac, FAC_ABI, s);
+    const est = await t.create.estimateGas(owners, th);
+    const tx = await t.create(owners, th, { gasLimit: (est * 130n) / 100n });
+    msg('cMsg', 'Sent: ' + tx.hash.slice(0, 18) + '… waiting…');
+    await tx.wait();
+    msg('cMsg', 'Safe deployed ✓');
+    sel = SAFES.length;
+    await refresh();
+  } catch (e) { msg('cMsg', 'Failed: ' + (e.shortMessage || e.message || e).toString().slice(0, 160), false); }
+});
+$('fundBtn').addEventListener('click', async () => {
+  const v = $('fAmt').value.trim();
+  const s = SAFES[sel];
+  if (!s || !v || Number(v) <= 0) { msg('fMsg', 'Select a safe + positive amount.', false); return; }
+  try {
+    const g = await getSigner();
+    const tx = await g.sendTransaction({ to: s.addr, value: ethers.parseEther(v) });
+    msg('fMsg', 'Sent: ' + tx.hash.slice(0, 18) + '…');
+    await tx.wait();
+    msg('fMsg', 'Funded ✓');
+    await refresh();
+  } catch (e) { msg('fMsg', 'Failed: ' + (e.shortMessage || e.message || e).toString().slice(0, 140), false); }
+});
+if ($('connectBtn')) {
+  appkit.subscribeAccount((a) => {
+    account = a.address || null;
+    $('connectBtn').textContent = account ? account.slice(0, 6) + '…' + account.slice(-4) : 'Connect wallet';
+    refresh();
+  });
+  appkit.subscribeNetwork((n) => {
+    if (n && n.chainId) { currentChainId = Number(n.chainId); const s = $('netSel'); if (s) s.value = String(currentChainId); }
+    refresh();
+  });
+  $('connectBtn').addEventListener('click', () => appkit.open());
+  if ($('netSel')) $('netSel').addEventListener('change', (e) => {
+    const id = Number(e.target.value);
+    try { appkit.switchNetwork({ id }); } catch (err) {}
+    currentChainId = id;
+    refresh();
+  });
+}
+refresh();
+setInterval(() => { if (!document.hidden) refresh(); }, 30000);
+</script>
+</body>
+</html>
